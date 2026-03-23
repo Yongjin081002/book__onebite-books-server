@@ -7,11 +7,16 @@ import { AppModule } from "./app.module";
 import { ClassValidatorException } from "./util/class-validator-exeption";
 import { PrismaClientExceptionFilter } from "./util/prisma-client-exception.filter";
 
-const PORT = "8080";
+const PORT = process.env.PORT || 3000;
+
+export let app;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: process.env.CLIENT_URL || "*",
+    credentials: true,
+  });
   app.use((req, res, next) => {
     req.headers["content-type"] = "application/json";
     next();
@@ -49,6 +54,14 @@ async function bootstrap() {
   };
 
   SwaggerModule.setup(`api`, app, document, options);
-  await app.listen(PORT);
+  
+  // Vercel 환경에서는 listen하지 않음, 로컬 개발용
+  if (process.env.NODE_ENV !== "production") {
+    await app.listen(PORT);
+    console.log(`Server running on port ${PORT}`);
+  }
+  
+  return app;
 }
+
 bootstrap();
